@@ -32,7 +32,7 @@ const AuthFormSchema = (formType: FormType) =>
 const AuthForm = ({ type }: { type: FormType }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [accountId, setAccountId] = useState<string | null>(null);
+  const [accountId, setAccountId] = useState<string | null>(null); // Optional typing
 
   const formSchema = AuthFormSchema(type);
 
@@ -49,47 +49,14 @@ const AuthForm = ({ type }: { type: FormType }) => {
     setErrorMessage("");
 
     try {
-      console.log("Submitting form with values:", values);
-
-      const response = await createAccount({
-        FullName: values.fullname || "",
+      const user = await createAccount({
+        fullName: values.fullname || "",
         email: values.email,
       });
 
-      console.log("Server response:", response);
-
-      // Handle potential string response
-      let result;
-      try {
-        result = typeof response === "string" ? JSON.parse(response) : response;
-      } catch (e) {
-        console.error("Error parsing response:", e);
-        setErrorMessage(`Error parsing response: ${response}`);
-        return;
-      }
-
-      // Check if the response contains an error
-      if (result?.error) {
-        console.error("Server returned an error:", result);
-        setErrorMessage(`Error: ${result.details || result.error}`);
-        return;
-      }
-
-      if (result?.accountId) {
-        console.log("Account created successfully with ID:", result.accountId);
-        setAccountId(result.accountId);
-        // You should add UI to handle the successful OTP sending
-      } else {
-        console.error("Invalid response structure:", result);
-        setErrorMessage("Failed to create account, please try again.");
-      }
+      setAccountId(user.accountId);
     } catch (error) {
-      console.error("Error during account creation:", error);
-      setErrorMessage(
-        error instanceof Error
-          ? `Error: ${error.message}`
-          : "Failed to create account, please try again."
-      );
+      setErrorMessage("Failed to create account, Please try again");
     } finally {
       setIsLoading(false);
     }

@@ -1,139 +1,68 @@
 "use server";
 
-import { createAdminClient } from "../appwrite";
+import { createAdminClient } from "@/lib/appwrite";
+import { appwriteconfig } from "@/lib/appwrite/config";
 import { ID, Query } from "node-appwrite";
-import { appwriteconfig } from "../appwrite/config";
+import { parseStringify } from "@/lib/utils";
 
-// Helper to handle errors
+const getUserByEmail = async (email: string) => {
+  const { databases } = await createAdminClient();  
+
+  const result = await databases.listDocuments(
+    appwriteconfig.databaseId,
+    appwriteconfig.UserCollectionId,
+    [Query.equal("email", [email])],
+  );
+
+  return result.total > 0 ? result.documents[0] : null;
+}
+
 const handleError = (error: unknown, message: string) => {
-  console.error(message, error);
-  // Return a stringified error object
-  return JSON.stringify({
-    error: message,
-    details: error instanceof Error ? error.message : String(error),
-  });
-};
+  console.log(error, message);
+  throw error;
+}
 
-// Send OTP to email
-const sendEmailOTP = async ({ email }: { email: string }): Promise<string> => {
+const sendEmailOTP = async ({ email }: { email: string }) => {
+  const { account } = await createAdminClient();
+
   try {
-    const { account } = await createAdminClient();
     const session = await account.createEmailToken(ID.unique(), email);
+
     return session.userId;
   } catch (error) {
-    console.error("Failed to send email OTP:", error);
-    throw error; // Re-throw to be handled by the caller
+    handleError(error, "Failed to send email OTP");
   }
-};
 
-// Get user by email
-const getUserByEmail = async (email: string) => {
-  try {
-    // Validate required configuration
-    if (!appwriteconfig.databaseId) {
-      throw new Error(
-        "Database ID is not configured. Please check your environment variables."
-      );
-    }
+}
 
-    if (!appwriteconfig.UserCollectionId) {
-      throw new Error(
-        "User Collection ID is not configured. Please check your environment variables."
-      );
-    }
-
-    const { databases } = await createAdminClient();
-
-    // Log database and collection IDs for debugging
-    console.log("Database ID:", appwriteconfig.databaseId);
-    console.log("User Collection ID:", appwriteconfig.UserCollectionId);
-
-    const result = await databases.listDocuments(
-      appwriteconfig.databaseId,
-      appwriteconfig.UserCollectionId,
-      [Query.equal("email", email)]
-    );
-
-    return result.total > 0 ? result.documents[0] : null;
-  } catch (error) {
-    console.error("Failed to get user by email:", error);
-    throw error; // Re-throw to be handled by the caller
-  }
-};
-
-// Create user account
 export const createAccount = async ({
-  FullName,
+  fullName,
   email,
 }: {
-  FullName: string;
+  fullName: string;
   email: string;
-}): Promise<string> => {
-  try {
-    // Log config for debugging
-    console.log("Appwrite Config:", {
-      databaseId: appwriteconfig.databaseId,
-      UserCollectionId: appwriteconfig.UserCollectionId,
-      endpointUrl: appwriteconfig.endpointUrl,
-      projectId: appwriteconfig.projectId,
-    });
+}) => {
+  const existingUser = await getUserByEmail(email);
 
-    // Try to get existing user
-    let existingUser;
-    try {
-      existingUser = await getUserByEmail(email);
-    } catch (error) {
-      return handleError(error, "Failed to check for existing user");
-    }
+  const accountId = await sendEmailOTP({ email });
+  if (!accountId) throw new Error("failed to send an OTP");
 
-    // Try to send OTP
-    let accountId;
-    try {
-      accountId = await sendEmailOTP({ email });
-    } catch (error) {
-      return handleError(error, "Failed to send an OTP");
-    }
+  if (!existingUser) {
+    const { databases } = await createAdminClient();
 
-    if (!accountId) {
-      return JSON.stringify({ error: "Failed to send an OTP" });
-    }
-
-    // Create user if they don't exist
-    if (!existingUser) {
-      try {
-        // Validate required configuration
-        if (!appwriteconfig.databaseId) {
-          throw new Error(
-            "Database ID is not configured. Please check your environment variables."
-          );
-        }
-
-        if (!appwriteconfig.UserCollectionId) {
-          throw new Error(
-            "User Collection ID is not configured. Please check your environment variables."
-          );
-        }
-
-        const { databases } = await createAdminClient();
-        await databases.createDocument(
-          appwriteconfig.databaseId,
-          appwriteconfig.UserCollectionId,
-          ID.unique(),
-          {
-            fullname: FullName,
-            email,
-            avatar:
-              "https://www.shutterstock.com/image-vector/young-smiling-man-avatar-3d-600nw-2124054758.jpg",
-            accountid: accountId,
-          }
-        );
-      } catch (error) {
-        return handleError(error, "Failed to create user document");
+    await databases.createDocument(
+      appwriteconfig.databaseId,
+      appwriteconfig.UserCollectionId,
+      ID.unique(),
+      {
+        fullName,
+        email,
+        avatar:
+          "https://i.pinimg.com/736x/fc/04/73/fc047347b17f7df7ff288d78c8c281cf.jpg",
+        accountId,
       }
-    }
-
-    return JSON.stringify({ accountId });
-  } catch (error) {
-    return handleError(error, "Failed to create account");
+    );
   }
+
+  return { accountId }; // ✅ Fix: Return accountId
 };

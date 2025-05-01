@@ -5,8 +5,5 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 export const parseStringify = (value: unknown) => {
-  if (value === undefined) {
-    return null; // Return null instead of undefined
-  }
   return JSON.parse(JSON.stringify(value));
 };
