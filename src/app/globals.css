@@ -1332,21 +1332,19 @@ body {
   object-fit: cover;
   object-position: center;
 }
-.blinking-caret {
-  animation: caret-blink 1s infinite;
-}
-/* Keyframes */
 @keyframes caret-blink {
-  0%,
-  70%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
-  20%,
   50% {
     opacity: 0;
   }
 }
+
+.animate-caret-blink {
+  animation: caret-blink 1s step-start infinite;
+}
+
 
 /* Add a general line-clamp utility class that can be used throughout the app */
 .line-clamp-1 {

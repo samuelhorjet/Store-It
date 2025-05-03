@@ -25,6 +25,7 @@ export const createSessionClient = async () => {
   };
 };
 
+
 export const createAdminClient = async () => {
   try {
     // Validate configuration

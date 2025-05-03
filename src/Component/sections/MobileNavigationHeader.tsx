@@ -8,8 +8,6 @@ import { Separator } from "@/Component/ui/separator";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/Component/ui/sheet";
@@ -17,18 +15,15 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/constants";
 import FileUploader from "./FileUploader";
+import { signOutUser } from "@/lib/actions/user.actions";
 
 interface props {
-  ownerId: string;
-  accountId: string;
   fullName: string;
   avatar: string;
   email: string;
 }
 
 const MobileNavigationHeader = ({
-  ownerId,
-  accountId,
   fullName,
   avatar,
   email,
@@ -104,7 +99,7 @@ const MobileNavigationHeader = ({
               <button
                 type="submit"
                 className="mobile-sign-out-button"
-                onClick={() => {}}
+                onClick={async () => await signOutUser}
               >
                 <Image
                   src="/public/assets/icons/logout.svg"

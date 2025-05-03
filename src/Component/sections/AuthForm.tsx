@@ -16,7 +16,7 @@ import {
 import { Input } from "@/Component/ui/input";
 import { useState } from "react";
 import Link from "next/link";
-import { createAccount } from "@/lib/actions/user.actions";
+import { createAccount, signInUser } from "@/lib/actions/user.actions";
 import OtpModal from "./otpmodel";
 
 type FormType = "sign-in" | "sign-up";
@@ -64,20 +64,39 @@ const AuthForm = ({ type }: { type: FormType }) => {
         throw new Error("Valid email is required");
       }
 
-      const user = await createAccount({
-        fullName: values.fullname || "",
-        email: values.email,
-      });
+      if (type === "sign-up") {
+        const response = await createAccount({
+          fullName: values.fullname || "",
+          email: values.email,
+        });
 
-      setAccountId(user.accountId);
+        setAccountId(response.accountId);
+      } else {
+        // Sign in flow
+        const response = await signInUser({ email: values.email });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        if (response.accountId) {
+          setAccountId(response.accountId);
+        } else {
+          throw new Error("Failed to sign in");
+        }
+      }
     } catch (error) {
-      console.error("Sign-up error:", error);
+      console.error("Authentication error:", error);
 
       // Display more specific error message if available
       if (error instanceof Error) {
-        setErrorMessage(`Failed to create account: ${error.message}`);
+        setErrorMessage(error.message);
       } else {
-        setErrorMessage("Failed to create account. Please try again");
+        setErrorMessage(
+          type === "sign-up"
+            ? "Failed to create account. Please try again"
+            : "Failed to sign in. Please try again"
+        );
       }
     } finally {
       setIsLoading(false);
@@ -86,24 +105,46 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
   return (
     <>
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="auth-form">
-        <h1 className="form-title mb-8">
-          {type === "sign-in" ? "Sign In" : "Sign Up"}
-        </h1>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="auth-form">
+          <h1 className="form-title mb-8">
+            {type === "sign-in" ? "Sign In" : "Sign Up"}
+          </h1>
 
-        {type === "sign-up" && (
+          {type === "sign-up" && (
+            <FormField
+              control={form.control}
+              name="fullname"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="shad-form-item mb-8">
+                    <FormLabel className="shad-form-label">Full Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter Your Full Name"
+                        className="shad-input"
+                        {...field}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage className="shad-form-message" />
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
-            name="fullname"
+            name="email"
             render={({ field }) => (
               <FormItem>
                 <div className="shad-form-item mb-8">
-                  <FormLabel className="shad-form-label">Full Name</FormLabel>
+                  <FormLabel className="shad-form-label">Email</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter Your Full Name"
+                      placeholder="Enter Your Email"
                       className="shad-input"
+                      type="email"
                       {...field}
                     />
                   </FormControl>
@@ -112,71 +153,50 @@ const AuthForm = ({ type }: { type: FormType }) => {
               </FormItem>
             )}
           />
-        )}
 
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <div className="shad-form-item mb-8">
-                <FormLabel className="shad-form-label">Email</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter Your Email"
-                    className="shad-input"
-                    type="email"
-                    {...field}
-                  />
-                </FormControl>
-              </div>
-              <FormMessage className="shad-form-message" />
-            </FormItem>
-          )}
-        />
-
-        <Button
-          className="form-submit-button text-white flex items-center gap-2"
-          type="submit"
-          disabled={isLoading}
-        >
-          {type === "sign-in" ? "Sign In" : "Sign Up"}
-          {isLoading && (
-            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full ml-2"></div>
-          )}
-        </Button>
-
-        {errorMessage && (
-          <div className="error-message mt-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">
-            {errorMessage}
-          </div>
-        )}
-
-        {accountId && (
-          <div className="success-message mt-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded">
-            Account created successfully! Check your email for verification.
-          </div>
-        )}
-
-        <div className="body-2 flex justify-center mt-8">
-          <p className="text-light-100">
-            {type === "sign-in"
-              ? "Don't have an account?"
-              : "Already have an account?"}
-          </p>
-          <Link
-            href={type === "sign-in" ? "/sign-up" : "/sign-in"}
-            className="ml-1 font-medium text-brand"
+          <Button
+            className="form-submit-button text-white flex items-center gap-2"
+            type="submit"
+            disabled={isLoading}
           >
-            {type === "sign-in" ? "Sign Up" : "Sign In"}
-          </Link>
-        </div>
-      </form>
-    </Form>
-      {
-  accountId && <OtpModal email={form.getValues('email')} accountId={accountId} />
-}
+            {type === "sign-in" ? "Sign In" : "Sign Up"}
+            {isLoading && (
+              <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full ml-2"></div>
+            )}
+          </Button>
 
+          {errorMessage && (
+            <div className="error-message mt-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+              {errorMessage}
+            </div>
+          )}
+
+          {accountId && (
+            <div className="success-message mt-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded">
+              {type === "sign-up"
+                ? "Account created successfully! Check your email for verification."
+                : "Check your email for the verification code."}
+            </div>
+          )}
+
+          <div className="body-2 flex justify-center mt-8">
+            <p className="text-light-100">
+              {type === "sign-in"
+                ? "Don't have an account?"
+                : "Already have an account?"}
+            </p>
+            <Link
+              href={type === "sign-in" ? "/sign-up" : "/sign-in"}
+              className="ml-1 font-medium text-brand"
+            >
+              {type === "sign-in" ? "Sign Up" : "Sign In"}
+            </Link>
+          </div>
+        </form>
+      </Form>
+      {accountId && (
+        <OtpModal email={form.getValues("email")} accountId={accountId} />
+      )}
     </>
   );
 };

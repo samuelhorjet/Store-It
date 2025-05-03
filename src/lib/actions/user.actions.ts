@@ -6,8 +6,9 @@ import { appwriteconfig } from "../appwrite/config";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { cookies } from "next/headers";
 import { avatarPlaceHolderUrl } from "@/constants";
+import { redirect } from "next/navigation";
 
-const getUserByEmail = async (email: string) => { 
+const getUserByEmail = async (email: string) => {
   try {
     console.log("Checking user with email:", email);
     console.log("Using database ID:", appwriteconfig.databaseId);
@@ -107,87 +108,133 @@ export const createAccount = async ({
     // Check if user already exists
     const existingUser = await getUserByEmail(email);
 
+    if (existingUser) {
+      throw new Error("User with this email already exists");
+    }
+
     // Send email OTP
     const accountId = await sendEmailOTP({ email });
     if (!accountId) throw new Error("Failed to send verification email");
 
-    // Create new user if they don't exist
-    if (!existingUser) {
-      const { databases } = await createAdminClient();
+    // Create new user
+    const { databases } = await createAdminClient();
 
-      try {
-        await databases.createDocument(
-          appwriteconfig.databaseId,
-          appwriteconfig.UserCollectionId,
-          ID.unique(),
-          {
-            fullName,
-            email,
-            avatar: avatarPlaceHolderUrl,
-            accountId,
-          }
-        );
-      } catch (dbError) {
-        console.error("Failed to create user document:", dbError);
-
-        // More specific error handling
-        if (dbError instanceof Error) {
-          if (dbError.message.includes("Permission denied")) {
-            throw new Error("Permission denied: Check API key permissions");
-          } else if (dbError.message.includes("duplicate")) {
-            throw new Error("A user with this information already exists");
-          } else {
-            throw new Error(
-              `Failed to create user in database: ${dbError.message}`
-            );
-          }
+    try {
+      await databases.createDocument(
+        appwriteconfig.databaseId,
+        appwriteconfig.UserCollectionId,
+        ID.unique(),
+        {
+          fullName,
+          email,
+          avatar: avatarPlaceHolderUrl,
+          accountId,
         }
+      );
+    } catch (dbError) {
+      console.error("Failed to create user document:", dbError);
 
-        throw new Error("Failed to create user in database");
+      // More specific error handling
+      if (dbError instanceof Error) {
+        if (dbError.message.includes("Permission denied")) {
+          throw new Error("Permission denied: Check API key permissions");
+        } else if (dbError.message.includes("duplicate")) {
+          throw new Error("A user with this information already exists");
+        } else {
+          throw new Error(
+            `Failed to create user in database: ${dbError.message}`
+          );
+        }
       }
+
+      throw new Error("Failed to create user in database");
     }
 
     return parseStringify({ accountId });
   } catch (error) {
-  // Provide more specific error message
-  if (error instanceof Error) {
-    throw new Error(error.message);
-  }
-  throw new Error("Failed to create account");
+    // Provide more specific error message
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error("Failed to create account");
   }
 };
 
-export const verifySecret = async({ accountId, password }: { accountId: string; password: string; }) => {
+export const verifySecret = async ({
+  accountId,
+  password,
+}: {
+  accountId: string;
+  password: string;
+}) => {
   try {
     const { account } = await createAdminClient();
 
     const session = await account.createSession(accountId, password);
-
-    (await cookies()).set('appwrite-session', session.secret, {
-      path: '/',
+    (await cookies()).set("appwrite-session", session.secret, {
+      path: "/",
       httpOnly: true,
-      sameSite: 'strict',
-      secure: true
+      sameSite: "strict",
+      secure: true,
     });
 
-    return parseStringify({sessionId: session.$id});
-    
+    return parseStringify({ sessionId: session.$id });
   } catch (error) {
-    handleError(error, "Failed to verify OTP" )
+    handleError(error, "Failed to verify OTP");
   }
-}
+};
 
 export const getCurrentUser = async () => {
-  const { databases, account } = await createSessionClient();
+  try {
+    const { databases, account } = await createSessionClient();
 
-  const result = await account.get();
-  
-  const user = await databases.listDocuments(
-    appwriteconfig.databaseId,
-    appwriteconfig.UserCollectionId,
-    [Query.equal("accountId", result.$id)]
-  );
+    const result = await account.get();
 
-  if (user.total <= 0) return null;
-   return parseStringify(user.documents[0])
-}
+    const user = await databases.listDocuments(
+      appwriteconfig.databaseId,
+      appwriteconfig.UserCollectionId,
+      [Query.equal("accountId", result.$id)]
+    );
+
+    if (user.total <= 0) return null;
+
+    return parseStringify(user.documents[0]);
+  } catch (error) {
+    // Optional: log error for debugging
+    console.error("getCurrentUser error:", error);
+    return null;
+  }
+};
+
+export const signOutUser = async () => {
+  try {
+    const { account } = await createSessionClient();
+
+    await account.deleteSession("current");
+    (await cookies()).delete("appwrite-session");
+  } catch (error) {
+    console.error("Failed to sign out user:", error);
+  } finally {
+    redirect("/sign-in");
+  }
+};
+
+export const signInUser = async ({ email }: { email: string }) => {
+  try {
+    // Check if user exists in the database
+    const existingUser = await getUserByEmail(email);
+
+    if (existingUser) {
+      // User exists, send OTP
+      const accountId = await sendEmailOTP({ email });
+      if (!accountId) throw new Error("Failed to send verification email");
+
+      return parseStringify({ accountId });
+    } else {
+      // User doesn't exist
+      return parseStringify({ accountId: null, error: "User not found" });
+    }
+  } catch (error) {
+    handleError(error, "Failed to sign in user");
+  }
+};
