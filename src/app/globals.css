@@ -43,7 +43,6 @@ body {
   color: #131524;
   min-height: 100vh;
 }
-
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 3px;
@@ -270,6 +269,7 @@ body {
   line-height: 20px;
   font-weight: 500;
   border-radius: 9999px;
+  cursor: pointer;
 }
 
 .shad-submit-btn:hover {
@@ -293,23 +293,22 @@ body {
   font-size: 40px;
   font-weight: 500;
   border-radius: 0.75rem;
-  box-shadow: 0px 10px 30px 0px rgba(66, 71, 97, 0.1), 0 0 0 2px #fa7275;
-  color: #ea6365;
+  box-shadow: 0px 10px 30px 0px rgba(124, 124, 124, 0.301);
   display: flex;
   justify-content: center;
   border: 2px solid #f2f5f9;
   width: 3rem;
+  margin: 20px 0;
   height: 3rem;
   gap: 1.25rem;
+  
 }
-
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .shad-otp-slot {
     width: 4rem;
     height: 4rem;
   }
 }
-
 .shad-sheet {
   padding-top: 0;
 }
@@ -1207,8 +1206,8 @@ body {
   height: 100vh;
   width: 90px;
   flex-direction: column;
-  overflow: auto;
   padding: 1.75rem 1.25rem;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
@@ -1333,7 +1332,9 @@ body {
   object-fit: cover;
   object-position: center;
 }
-
+.blinking-caret {
+  animation: caret-blink 1s infinite;
+}
 /* Keyframes */
 @keyframes caret-blink {
   0%,

@@ -17,6 +17,7 @@ import { Input } from "@/Component/ui/input";
 import { useState } from "react";
 import Link from "next/link";
 import { createAccount } from "@/lib/actions/user.actions";
+import OtpModal from "./otpmodel";
 
 type FormType = "sign-in" | "sign-up";
 
@@ -32,7 +33,7 @@ const AuthFormSchema = (formType: FormType) =>
 const AuthForm = ({ type }: { type: FormType }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [accountId, setAccountId] = useState<string | null>(null); // Optional typing
+  const [accountId, setAccountId] = useState<string | null>(null);
 
   const formSchema = AuthFormSchema(type);
 
@@ -49,6 +50,20 @@ const AuthForm = ({ type }: { type: FormType }) => {
     setErrorMessage("");
 
     try {
+      // Validate inputs before sending to server
+      if (
+        type === "sign-up" &&
+        (!values.fullname || values.fullname.trim().length < 2)
+      ) {
+        throw new Error(
+          "Full name is required and must be at least 2 characters"
+        );
+      }
+
+      if (!values.email || !values.email.includes("@")) {
+        throw new Error("Valid email is required");
+      }
+
       const user = await createAccount({
         fullName: values.fullname || "",
         email: values.email,
@@ -56,13 +71,21 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
       setAccountId(user.accountId);
     } catch (error) {
-      setErrorMessage("Failed to create account, Please try again");
+      console.error("Sign-up error:", error);
+
+      // Display more specific error message if available
+      if (error instanceof Error) {
+        setErrorMessage(`Failed to create account: ${error.message}`);
+      } else {
+        setErrorMessage("Failed to create account. Please try again");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
+    <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="auth-form">
         <h1 className="form-title mb-8">
@@ -150,6 +173,11 @@ const AuthForm = ({ type }: { type: FormType }) => {
         </div>
       </form>
     </Form>
+      {
+  accountId && <OtpModal email={form.getValues('email')} accountId={accountId} />
+}
+
+    </>
   );
 };
 
