@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Models } from "node-appwrite";
+export const dynamic = "force-dynamic";
 
 import { getFiles, getTotalSpaceUsed } from "@/lib/actions/file.actions";
 import { convertFileSize, getUsageSummary } from "@/lib/utils";
