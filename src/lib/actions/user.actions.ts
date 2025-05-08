@@ -186,7 +186,7 @@ export const verifySecret = async ({
 
 export const getCurrentUser = async () => {
   try {
-    const { databases, account } = await createSessionClient();
+    const { databases, account } = createSessionClient();
 
     const result = await account.get();
 
@@ -200,11 +200,11 @@ export const getCurrentUser = async () => {
 
     return parseStringify(user.documents[0]);
   } catch (error) {
-    // Optional: log error for debugging
     console.error("getCurrentUser error:", error);
     return null;
   }
 };
+
 
 export const signOutUser = async () => {
   try {
