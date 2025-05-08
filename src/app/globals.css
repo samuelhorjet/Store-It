@@ -912,14 +912,14 @@ body {
   line-height: 20px;
   font-weight: 500;
   height: 52px;
-  gap: 0.5rem;
+  display: ruby;
   padding-left: 2.5rem;
   padding-right: 2.5rem;
   box-shadow: 0px 10px 30px 0px rgba(66, 71, 97, 0.1);
 }
 
 .uploader-button:hover {
-  background-color: #ea6365;
+  background-color: #b800007a;
 }
 
 .uploader-preview-list {
@@ -1354,6 +1354,33 @@ body {
   line-clamp: 1;
   -webkit-box-orient: vertical;
 }
+.loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.6s linear infinite;
+  margin: auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.search-result {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.search-result.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
 
 .line-clamp-2 {
   overflow: hidden;
@@ -1370,3 +1397,24 @@ body {
   line-clamp: 3;
   -webkit-box-orient: vertical;
 }
+/* globals.css */
+
+/* Hide scrollbar but still allow scrolling */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+body::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
