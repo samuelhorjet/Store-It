@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { Account, Client } from "node-appwrite";
 import { twMerge } from "tailwind-merge";
 type FileType = "document" | "image" | "video" | "audio" | "other";
 
@@ -84,6 +85,19 @@ export const getFileType = (fileName: string) => {
 
   return { type: "OTHER", extension };
 };
+
+export function createClient() {
+  const client = new Client();
+
+  client
+    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
+    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+
+  return {
+    client,
+    account: new Account(client),
+  };
+}
 
 
 

@@ -176,6 +176,7 @@ export const verifySecret = async ({
       httpOnly: true,
       sameSite: "strict",
       secure: true,
+      maxAge: 60 * 60 * 24 * 30, // 30 days in seconds
     });
 
     return parseStringify({ sessionId: session.$id });
@@ -186,7 +187,7 @@ export const verifySecret = async ({
 
 export const getCurrentUser = async () => {
   try {
-    const { databases, account } = createSessionClient();
+    const { databases, account } = await createSessionClient();
 
     const result = await account.get();
 
@@ -200,11 +201,11 @@ export const getCurrentUser = async () => {
 
     return parseStringify(user.documents[0]);
   } catch (error) {
+    // Optional: log error for debugging
     console.error("getCurrentUser error:", error);
     return null;
   }
 };
-
 
 export const signOutUser = async () => {
   try {
