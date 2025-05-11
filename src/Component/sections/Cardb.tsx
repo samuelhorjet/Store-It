@@ -6,59 +6,20 @@ import Thumbnail from "./Thumbnail";
 import { convertFileSize } from "@/lib/utils";
 import FormattedDateTime from "./FormattedDateTime";
 import { useEffect, useState } from "react";
-import { getOwnerById } from "@/lib/actions/owner.actions";
-import { getCurrentUser } from "@/lib/actions/user.actions";
 import Dropdown from "./Dropdown";
-import { createAdminClient } from "@/lib/appwrite";
-import { appwriteconfig } from "@/lib/appwrite/config";
+import { getOwnerNameForFile } from "@/lib/actions/owner.actions";
 
 const Cardb = ({ file }: { file: Models.Document }) => {
   const [ownerName, setOwnerName] = useState<string>("Loading...");
 
   useEffect(() => {
     const fetchOwner = async () => {
-      // Always try to get the owner from the file.owner field first
-      if (file.owner === null) {
-        try {
-          const currentUser = await getCurrentUser();
-          setOwnerName(currentUser?.fullName || "You");
-        } catch {
-          setOwnerName("You");
-        }
-        return;
-      }
-
-      // If we have an owner ID, try to get the owner data
-      if (typeof file.owner === "string" && file.owner) {
-        try {
-          const ownerData = await getOwnerById(file.owner);
-          if (ownerData && ownerData.fullName) {
-            setOwnerName(ownerData.fullName);
-
-            // If the file doesn't have an $ownerName field, update it
-            if (!file.$ownerName) {
-              const { databases } = await createAdminClient();
-              await databases.updateDocument(
-                appwriteconfig.databaseId,
-                appwriteconfig.filesCollectionId,
-                file.$id,
-                {
-                  $ownerName: ownerData.fullName,
-                }
-              );
-            }
-          } else {
-            setOwnerName("Unknown");
-          }
-        } catch {
-          setOwnerName("Unknown");
-        }
-      } else if (typeof file.owner === "object" && file.owner?.fullName) {
-        setOwnerName(file.owner.fullName);
-      } else if (file.$ownerName) {
-        // Use the cached owner name if available
-        setOwnerName(file.$ownerName);
-      } else {
+      try {
+        // Use a server action instead of directly creating an admin client
+        const ownerData = await getOwnerNameForFile(file);
+        setOwnerName(ownerData.ownerName);
+      } catch (error) {
+        console.error("Error fetching owner:", error);
         setOwnerName("Unknown");
       }
     };

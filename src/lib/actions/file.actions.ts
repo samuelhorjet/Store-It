@@ -6,7 +6,7 @@ import { getCurrentUser } from "./user.actions";
 import { appwriteconfig } from "@/lib/appwrite/config";
 import { constructFileUrl, getFileType, parseStringify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
-import { createAdminClient, createSessionClient } from "../appwrite";
+import { createAdminClient } from "../appwrite";
 
 const handleError = (error: unknown, message: string) => {
   console.error(message, error);
@@ -59,7 +59,9 @@ export const uploadFiles = async ({
       console.log("[Buffer Conversion] Success. Size:", buffer.length);
     } catch (bufferErr: unknown) {
       console.error("[Buffer Error] Failed to read file buffer:", bufferErr);
-      throw new Error("Unable to read file buffer. Possibly too large or unsupported.");
+      throw new Error(
+        "Unable to read file buffer. Possibly too large or unsupported."
+      );
     }
 
     // Upload to storage
@@ -73,7 +75,10 @@ export const uploadFiles = async ({
       );
       console.log("[Storage Upload] Success:", bucketFile);
     } catch (storageErr: unknown) {
-      console.error("[Storage Upload Error] Appwrite failed to store file:", storageErr);
+      console.error(
+        "[Storage Upload Error] Appwrite failed to store file:",
+        storageErr
+      );
       if (storageErr instanceof Error) {
         console.log("Detailed Storage Error:", storageErr.message);
       }
@@ -94,7 +99,9 @@ export const uploadFiles = async ({
     }
 
     const userEmail = currentUser?.email || "";
+    const userName = currentUser?.fullName || "";
 
+    // Create file document with all required fields according to schema
     const fileDocument = {
       name: bucketFile.name,
       url: constructFileUrl(bucketFile.$id),
@@ -103,11 +110,14 @@ export const uploadFiles = async ({
       accountId,
       owner: resolvedOwnerId,
       ownerEmail: userEmail,
+      ownerName: userName, // Add the owner's name
       extension,
       size: bucketFile.sizeOriginal,
       users: userEmail ? [userEmail] : [],
       allowReshare: true,
     };
+
+    console.log("[DB Save] File document to create:", fileDocument);
 
     const documentId = ID.unique();
 
@@ -126,6 +136,37 @@ export const uploadFiles = async ({
       if (dbErr instanceof Error) {
         console.log("Detailed DB Error:", dbErr.message);
       }
+      // Try to get more specific error information
+      try {
+        // Check if the collection exists
+        await databases.getCollection(
+          appwriteconfig.databaseId,
+          appwriteconfig.filesCollectionId
+        );
+        console.log("[DB Check] Collection exists");
+
+        // Try to create a minimal document to see if it works
+        const minimalDoc = {
+          name: bucketFile.name,
+          url: constructFileUrl(bucketFile.$id),
+          type,
+          bucketField: bucketFile.$id,
+          accountId,
+          ownerEmail: userEmail,
+        };
+        console.log("[DB Retry] Trying with minimal document:", minimalDoc);
+
+        await databases.createDocument(
+          appwriteconfig.databaseId,
+          appwriteconfig.filesCollectionId,
+          ID.unique(),
+          minimalDoc
+        );
+        console.log("[DB Retry] Minimal document created successfully");
+      } catch (checkErr) {
+        console.error("[DB Check Error] Additional error info:", checkErr);
+      }
+
       throw new Error("Failed to save file record.");
     }
 
@@ -146,6 +187,7 @@ export const uploadFiles = async ({
           {
             owner: resolvedOwnerId,
             ownerEmail: userEmail,
+            ownerName: userName,
           }
         );
       }
@@ -173,9 +215,6 @@ export const uploadFiles = async ({
     throw error;
   }
 };
-
-
-
 
 export const fixAllFiles = async (): Promise<
   { updated: number } | undefined
@@ -227,7 +266,13 @@ export const fixAllFiles = async (): Promise<
   }
 };
 
-const createQueries = (CurrentUser: Models.Document, types: string[], searchText: string, sort: string, limit?: number) => {
+const createQueries = (
+  CurrentUser: Models.Document,
+  types: string[],
+  searchText: string,
+  sort: string,
+  limit?: number
+) => {
   const queries = [
     Query.or([
       Query.equal("owner", [CurrentUser.$id]),
@@ -240,23 +285,26 @@ const createQueries = (CurrentUser: Models.Document, types: string[], searchText
   }
   if (searchText) {
     queries.push(Query.contains("name", searchText));
-  }if (limit) {
+  }
+  if (limit) {
     queries.push(Query.limit(limit));
   }
   if (sort) {
-    const [sortBy, orderBy] = sort.split('-');
+    const [sortBy, orderBy] = sort.split("-");
     queries.push(
-      orderBy === "asc" ? Query.orderAsc(sortBy) : Query.orderDesc(sortBy),
-    )
+      orderBy === "asc" ? Query.orderAsc(sortBy) : Query.orderDesc(sortBy)
+    );
   }
   return queries;
 };
 
-
-export const getFiles = async ({ types = [], searchText = '', sort = '$createdAt-desc', limit }: GetFilesProps) => {
+export const getFiles = async ({
+  types = [],
+  searchText = "",
+  sort = "$createdAt-desc",
+  limit,
+}: GetFilesProps) => {
   const { databases } = await createAdminClient();
-
-  
 
   try {
     const currentUser = await getCurrentUser();
@@ -367,17 +415,22 @@ export const updateFileUsers = async ({
     const uniqueUsers = new Set([...existingUsers, ...emails, ownerEmail]);
     const updatedUsers = Array.from(uniqueUsers);
 
-    const uploadFile = await databases.updateDocument(
+    const result = await databases.updateDocument(
       appwriteconfig.databaseId,
       appwriteconfig.filesCollectionId,
       fileId,
       {
         users: updatedUsers,
+        // Make sure these fields are preserved and not overwritten
+        // This ensures owner information is maintained when sharing
+        $ownerName: currentFile.$ownerName || undefined,
+        owner: currentFile.owner || undefined,
+        ownerEmail: currentFile.ownerEmail || undefined,
       }
     );
 
     revalidatePath(path);
-    return parseStringify(uploadFile);
+    return parseStringify(result);
   } catch (error) {
     handleError(error, "Failed to share file");
   }

@@ -12,6 +12,7 @@ import { getOwnerById } from "@/lib/actions/owner.actions";
 import Image from "next/image";
 import { updateAllowReshare } from "@/lib/actions/file.actions";
 import { usePathname } from "next/navigation";
+import { getOwnerNameForFile } from "@/lib/actions/owner.actions";
 
 // Moved state to parent component
 const ImageThumbnail = ({ file }: { file: Models.Document }) => {
@@ -42,29 +43,40 @@ export const FileDetails = ({ file }: { file: Models.Document }) => {
 
   useEffect(() => {
     const fetchOwner = async () => {
-      if (file.owner === null) {
-        try {
-          const currentUser = await getCurrentUser();
-          setOwnerName(currentUser?.fullName || "You");
-        } catch {
-          setOwnerName("You");
-        }
-        return;
-      }
+      try {
+        // Use the getOwnerNameForFile function to get the correct owner name
+        const ownerData = await getOwnerNameForFile(file);
+        setOwnerName(ownerData.ownerName);
+      } catch (error) {
+        console.error("Error fetching owner name:", error);
 
-      if (typeof file.owner === "string" && file.owner) {
-        try {
-          const ownerData = await getOwnerById(file.owner);
-          setOwnerName(ownerData?.fullName || "Unknown");
-        } catch {
+        // Fallback to the original logic if the new function fails
+        if (file.owner === null) {
+          try {
+            const currentUser = await getCurrentUser();
+            setOwnerName(currentUser?.fullName || "You");
+          } catch {
+            setOwnerName("You");
+          }
+          return;
+        }
+
+        if (typeof file.owner === "string" && file.owner) {
+          try {
+            const ownerData = await getOwnerById(file.owner);
+            setOwnerName(ownerData?.fullName || "Unknown");
+          } catch {
+            setOwnerName("Unknown");
+          }
+        } else if (typeof file.owner === "object" && file.owner?.fullName) {
+          setOwnerName(file.owner.fullName);
+        } else if (file.ownerName) {
+          setOwnerName(file.ownerName);
+        } else if (file.ownerEmail) {
+          setOwnerName(file.ownerEmail.split("@")[0]);
+        } else {
           setOwnerName("Unknown");
         }
-      } else if (typeof file.owner === "object" && file.owner?.fullName) {
-        setOwnerName(file.owner.fullName);
-      } else if (file.$ownerName) {
-        setOwnerName(file.$ownerName);
-      } else {
-        setOwnerName("Unknown");
       }
     };
 
@@ -107,6 +119,7 @@ export const ShareInput = ({
     file.allowReshare !== false
   );
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [ownerName, setOwnerName] = useState<string>("Loading...");
   const path = usePathname();
 
   // Get current user email on component mount
@@ -122,8 +135,12 @@ export const ShareInput = ({
             file.owner === user.$id || file.ownerEmail === user.email;
           setIsOwner(isOwner);
         }
+
+        // Get the correct owner name
+        const ownerData = await getOwnerNameForFile(file);
+        setOwnerName(ownerData.ownerName);
       } catch (error) {
-        console.error("Error getting current user:", error);
+        console.error("Error getting current user or owner name:", error);
       }
     };
 
@@ -185,6 +202,12 @@ export const ShareInput = ({
       <ImageThumbnail file={file} />
 
       <div className="share-wrapper">
+        {/* Display the owner information */}
+        <div className="flex items-center mb-4 p-2 bg-gray-50 rounded-md">
+          <p className="text-sm font-medium text-gray-500 mr-2">Owner:</p>
+          <p className="text-sm font-medium">{ownerName}</p>
+        </div>
+
         {!canShare && !isOwner && (
           <div className="bg-yellow-50 text-yellow-800 p-3 rounded-md mb-4">
             The owner has disabled resharing of this file.

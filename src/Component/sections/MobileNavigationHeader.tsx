@@ -98,7 +98,7 @@ const MobileNavigationHeader = ({
               </ul>
             </nav>
             <Separator className="my-5 bg-light-200/20" />
-            <div className="flex flex-col justify-between gap-5 pb-5">
+            <div className="flex flex-col justify-between gap-5 pb-30">
               <FileUploader ownerId={"ownerId"} accountId={"accountId"} />
               <button
                 type="submit"
