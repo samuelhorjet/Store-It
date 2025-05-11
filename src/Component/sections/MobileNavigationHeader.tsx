@@ -103,7 +103,7 @@ const MobileNavigationHeader = ({
               <button
                 type="submit"
                 className="mobile-sign-out-button"
-                onClick={async () => await signOutUser}
+                onClick={async () => await signOutUser()}
               >
                 <Image
                   src="/public/assets/icons/logout.svg"
