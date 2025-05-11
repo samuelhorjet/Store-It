@@ -2,18 +2,17 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import React from "react";
 import { usePathname } from "next/navigation";
 import { avatarPlaceHolderUrl, navItems } from "@/constants";
 import { cn } from "@/lib/utils";
 
 interface props {
-    fullName: string;
-    avatar: string;
-    email: string
+  fullName: string;
+  avatar: string;
+  email: string;
 }
 
-const Sidebar = ({ fullName, avatar, email}: props) => {
+const Sidebar = ({ fullName, avatar, email }: props) => {
   const pathname = usePathname();
 
   return (
@@ -22,58 +21,59 @@ const Sidebar = ({ fullName, avatar, email}: props) => {
         <Image
           src="/public/assets/icons/logo-full-brand.svg"
           alt="logo"
-          width={160}
-          height={50}
+          width={140}
+          height={40}
           className="hidden h-auto lg:block"
         />
 
         <Image
           src="/public/assets/icons/logo-brand.svg"
           alt="logo"
-          width={52}
-          height={52}
+          width={40}
+          height={40}
           className="lg:hidden h-auto"
         />
       </Link>
       <nav className="sidebar-nav">
-        <ul className="flex flex-1 flex-col gap-6">
+        <ul className="flex flex-1 flex-col gap-2">
           {navItems.map(({ url, name, icon }) => (
             <Link key={name} href={url} className="lg:w-full">
               <li
                 className={cn(
-                  "sidebar-nav-item",
-                  pathname === url && "shad-active"
+                  "sidebar-nav-item flex items-center gap-4 px-3 py-2 rounded-lg transition-colors",
+                  pathname === url && "shad-active bg-[#fa7275] text-white"
                 )}
               >
-                <Image
-                  src={icon}
-                  alt={name}
-                  width={24}
-                  height={24}
-                  className={cn(
-                    "-nav-icon",
-                    pathname === url && "nav-icon-active"
-                  )}
-                />
+                <div className="bg-[#fa727493] p-3 rounded-full">
+                  <Image
+                    src={icon || "/placeholder.svg"}
+                    alt={name}
+                    width={20}
+                    height={20}
+                    className="object-contain"
+                  />
+                </div>
                 <p className="hidden lg:block">{name}</p>
               </li>
             </Link>
           ))}
         </ul>
       </nav>
-      <Image
-        src="/public/assets/images/files-2.png"
-        alt="logo"
-        width={506}
-        height={418}
-        className="w-full pt-10"
-      />
-      <div className="sidebar-user-info">
+      <div className="sidebar-image-container">
         <Image
-          src={avatarPlaceHolderUrl}
+          src="/public/assets/images/files-2.png"
+          alt="logo"
+          width={400}
+          height={400}
+          className="w-full object-contain"
+        />
+      </div>
+      <div className="sidebar-user-info mt-auto">
+        <Image
+          src={avatarPlaceHolderUrl || "/placeholder.svg"}
           alt={avatar}
-          width={44}
-          height={44}
+          width={36}
+          height={36}
           className="sidebar-user-avatar"
         />
         <div className="hidden lg:block">

@@ -25,32 +25,32 @@ const Page = async ({ searchParams, params }: SearchParamProps) => {
 
   const files = await getFiles({ types, searchText, sort });
 
-  return (
-    <div className="page-container">
-      <section className="w-full">
-        <h1 className="h1 capitalize">{type}</h1>
-        <div className="total-size-section">
-          <Total files={files.documents} />
-          <div className="sort-container">
-            <p className="body-1 hidden sm:block text-light-200">Sort by:</p>
-            <Sort />
-          </div>
-        </div>
-      </section>
+     return (
+       <div className="page-container">
+         <section className="w-full mb-6">
+           <h1 className="h1 capitalize">{type}</h1>
+           <div className="total-size-section">
+             <Total files={files.documents} />
+             <div className="sort-container">
+               <p className="body-1 hidden sm:block text-light-200">Sort by:</p>
+               <Sort />
+             </div>
+           </div>
+         </section>
 
-      {files?.documents?.length > 0 ? (
-        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {files.documents.map((file: Models.Document) => (
-            <Cardb key={file.$id} file={file} />
-          ))}
-        </section>
-      ) : (
-        <div className="empty-list">
-          <p>No files Uploaded</p>
-        </div>
-      )}
-    </div>
-  );
+         {files?.documents?.length > 0 ? (
+           <section className="flex flex-wrap justify-center gap-4 items-start w-full min-h-[180px] overflow-y-auto custom-scrollbar">
+             {files.documents.map((file: Models.Document) => (
+               <Cardb key={file.$id} file={file} />
+             ))}
+           </section>
+         ) : (
+           <div className="empty-list">
+             <p>No files Uploaded</p>
+           </div>
+         )}
+       </div>
+     );
 };
 
 export default Page;

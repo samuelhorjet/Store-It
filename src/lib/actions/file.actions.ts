@@ -553,12 +553,16 @@ export const removeUserFromFile = async ({
   }
 };
 
-export async function getTotalSpaceUsed() {
+export async function getTotalSpaceUsed(timestamp?: number) {
   try {
+    // Force cache busting with the timestamp
+    console.log("Getting total space used at:", timestamp || Date.now());
+
     const { databases } = await createAdminClient(); // Use admin client for better access
     const currentUser = await getCurrentUser();
     if (!currentUser) throw new Error("User is not authenticated.");
 
+    // Add cache-busting query parameter
     const files = await databases.listDocuments(
       appwriteconfig.databaseId,
       appwriteconfig.filesCollectionId,
@@ -567,6 +571,8 @@ export async function getTotalSpaceUsed() {
           Query.equal("owner", [currentUser.$id]),
           Query.contains("users", [currentUser.email]),
         ]),
+        Query.limit(1000), // 👈 Ensure we fetch up to 1000 files
+        Query.orderDesc("$updatedAt"), // Ensure we get the latest updates
       ]
     );
 

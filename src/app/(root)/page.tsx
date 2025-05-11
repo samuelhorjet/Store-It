@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Models } from "node-appwrite";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { getFiles, getTotalSpaceUsed } from "@/lib/actions/file.actions";
 import { convertFileSize, getUsageSummary } from "@/lib/utils";
@@ -14,7 +15,7 @@ import Dropdown from "@/Component/sections/Dropdown";
 const Dashboard = async () => {
   // Parallel requests
   const [files, totalSpace] = await Promise.all([
-    getFiles({ types: [], limit: 10 }),
+    getFiles({ types: [], limit: 20 }),
     getTotalSpaceUsed(),
   ]);
 
@@ -34,7 +35,7 @@ const Dashboard = async () => {
               key={summary.title}
               className="dashboard-summary-card"
             >
-              <div className="space-y-4">
+              <div className="space-y-8 pb-15 md:pb-0 lg:space-y-4 md:space-y-3">
                 <div className="flex justify-between gap-3">
                   <Image
                     src={summary.icon}

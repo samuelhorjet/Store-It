@@ -105,18 +105,21 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
                     imageClassName=""
                     className=""
                   />
-                  <div className="preview-item-name">
-                    {file.name}
+                  <div className="flex flex-col max-w-[200px]">
+                    <p className="truncate text-sm font-medium text-gray-800 max-w-full">
+                      {file.name}
+                    </p>
                     <Image
-                      src="/public/assets/icons/file-loader.gif"
+                      src="public/assets/icons/file-loader.gif"
                       alt="loader"
                       width={80}
                       height={26}
+                      className="mt-1"
                     />
                   </div>
                 </div>
                 <Image
-                  src="/public/assets/icons/remove.svg"
+                  src="public/assets/icons/remove.svg"
                   alt="remove"
                   width={24}
                   height={24}
@@ -129,6 +132,7 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
       )}
     </div>
   );
+
 };
 
 export default FileUploader;

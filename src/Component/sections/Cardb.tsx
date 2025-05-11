@@ -70,38 +70,31 @@ const Cardb = ({ file }: { file: Models.Document }) => {
     <Link
       href={file.url}
       target="_blank"
-      className="file-card block bg-dark-500 p-4 rounded-xl shadow-md transition hover:shadow-lg overflow-hidden w-full"
+      className="block bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-4 relative w-full max-w-[370px] ml-1 h-[155px] md:max-w-[180px] md:h-[155px] lg:max-w-[235px] lg:h-[155px]"
     >
-      <div className="flex justify-between items-start w-full gap-4">
-        {/* Left: Thumbnail and Info */}
-        <div className="flex gap-4 max-w-[70%] items-center">
-          <Thumbnail
-            type={file.type}
-            extension={file.extension}
-            url={file.url}
-            imageClassName="!size-16 rounded-full" // Bigger, circular image
-            className="!size-16 rounded-full"
-          />
-
-          <div className="flex flex-col gap-2 justify-between text-sm md:text-base">
-            <p className="font-medium break-words text-light-100 md:subtitle-2">
-              {file.name}
-            </p>
-            <FormattedDateTime
-              date={file.$createdAt}
-              className="text-light-200"
-            />
-            <p className="text-light-200 break-words text-xs md:text-sm">
-              By: {ownerName}
-            </p>
-          </div>
-        </div>
-
-        {/* Right: Actions & Size */}
-        <div className="flex flex-col items-end justify-between h-full">
+      <div className="flex justify-between items-start mb-6">
+        <Thumbnail
+          type={file.type}
+          extension={file.extension}
+          url={file.url}
+          imageClassName="w-8 h-8"
+          className="w-8 h-8"
+        />
+        <div className="flex justify-between flex-col items-center">
           <Dropdown file={file} />
-          <p className="body-1">{convertFileSize(file.size)}</p>
+          <p className="text-sm font-medium text-gray-700">
+            {convertFileSize(file.size)}
+          </p>
         </div>
+      </div>
+
+      {/* File name */}
+      <h3 className="font-medium text-gray-900 mb-1 truncate">{file.name}</h3>
+
+      {/* Date and owner */}
+      <div className="absolute bottom-4 left-4 right-4">
+        <FormattedDateTime date={file.$createdAt} className="text-light-200" />
+        <p className="text-xs text-gray-500 pt-1.5">By: {ownerName}</p>
       </div>
     </Link>
   );
