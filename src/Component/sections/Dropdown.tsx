@@ -31,6 +31,9 @@ import {
 } from "@/lib/actions/file.actions";
 import { usePathname } from "next/navigation";
 import { FileDetails, ShareInput } from "./ActionsModel";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Toast } from "@capacitor/toast";
 
 type UpdateFileUsersProps = {
   fileId: string;
@@ -214,42 +217,117 @@ const Dropdown = ({ file }: { file: Models.Document }) => {
     }
   };
 
+  const getDirectoryByMime = (mimeType: string): Directory => {
+    if (mimeType.startsWith("video/")) return Directory.ExternalStorage;
+    if (mimeType.startsWith("image/")) return Directory.ExternalStorage;
+    if (mimeType.startsWith("audio/")) return Directory.ExternalStorage;
+    if (
+      mimeType === "application/pdf" ||
+      mimeType.includes("word") ||
+      mimeType.includes("text") ||
+      mimeType.includes("sheet")
+    ) {
+      return Directory.Documents;
+    }
+    return Directory.Documents; // default fallback
+  };
+
   const handleDownload = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     try {
-      // Show loading state
       setIsLoading(true);
 
-      // Fetch the file content from Appwrite
+      // Fetch file blob from your API or storage
       const response = await fetch(constructDownloadUrl(fileData.bucketField));
       const blob = await response.blob();
 
-      // Create a new blob with the same content
-      const newBlob = new Blob([blob], { type: blob.type });
-
-      // Create an object URL for the blob
-      const blobUrl = URL.createObjectURL(newBlob);
-
-      // Create a temporary anchor element
-      const downloadLink = document.createElement("a");
-      downloadLink.href = blobUrl;
-
-      // Set the download attribute to the current name (with extension if needed)
       const fileExtension = fileData.extension ? `.${fileData.extension}` : "";
-      downloadLink.download = `${fileData.name}${fileExtension}`;
+      const fileName = `${fileData.name}${fileExtension}`;
 
-      // Trigger the download
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
+      if (Capacitor.isNativePlatform()) {
+        // Convert blob to base64 string
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Data = (reader.result as string).split(",")[1]; // remove prefix
 
-      // Clean up
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(blobUrl);
+          try {
+            // Determine folder based on file MIME type
+            let folder = "";
+            if (fileData.type.startsWith("video")) {
+              folder = "DCIM";
+            } else if (fileData.type.startsWith("image")) {
+              folder = "Pictures";
+            } else if (
+              fileData.type === "application/pdf" ||
+              fileData.type.includes("document")
+            ) {
+              folder = "Documents";
+            } else if (fileData.type.startsWith("audio")) {
+              folder = "Music";
+            } else {
+              folder = "Download"; // fallback
+            }
+
+            // Write the file to the chosen folder
+            const writeResult = await Filesystem.writeFile({
+              path: `${folder}/${fileName}`,
+              data: base64Data,
+              directory: Directory.External,
+              recursive: true,
+            });
+
+            // Get the native file URI to open it
+            const fileUriResult = await Filesystem.getUri({
+              directory: Directory.External,
+              path: `${folder}/${fileName}`,
+            });
+
+            await Toast.show({ text: "File saved successfully!" });
+
+            // Open the file using native app
+            if (
+              window.cordova &&
+              window.cordova.plugins &&
+              window.cordova.plugins.fileOpener2
+            ) {
+              window.cordova.plugins.fileOpener2.open(
+                fileUriResult.uri,
+                fileData.type,
+                {
+                  error: (e: any) => {
+                    console.error("Error opening file:", e);
+                    Toast.show({ text: "File saved but couldn't open it." });
+                  },
+                  success: () => {
+                    console.log("File opened successfully");
+                  },
+                }
+              );
+            }
+          } catch (err) {
+            console.error("Filesystem error:", err);
+            await Toast.show({
+              text: "Error saving file. Please check app permissions.",
+            });
+          }
+        };
+        reader.readAsDataURL(blob);
+      } else {
+        // Web fallback: download normally
+        const blobUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = blobUrl;
+        downloadLink.download = fileName;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(blobUrl);
+      }
     } catch (error) {
       console.error("Download failed:", error);
-      // You could add error handling UI here
+      await Toast.show({ text: "Download failed." });
     } finally {
       setIsLoading(false);
     }
@@ -374,6 +452,8 @@ const Dropdown = ({ file }: { file: Models.Document }) => {
                   <span className="text-sm text-gray-700">
                     {isLoading && actionItem.value === "download"
                       ? "Downloading..."
+                      : Capacitor.isNativePlatform()
+                      ? "Save"
                       : actionItem.label}
                   </span>
                 </div>
