@@ -451,7 +451,7 @@ const Dropdown = ({ file }: { file: Models.Document }) => {
                   )}
                   <span className="text-sm text-gray-700">
                     {isLoading && actionItem.value === "download"
-                      ? "Downloading..."
+                      ? "saving..."
                       : Capacitor.isNativePlatform()
                       ? "Save"
                       : actionItem.label}

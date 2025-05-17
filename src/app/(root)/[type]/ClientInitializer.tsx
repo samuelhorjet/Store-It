@@ -1,72 +1,12 @@
-import Cardb from "@/Component/sections/Cardb";
-import Sort from "@/Component/sections/Sort";
-import Total from "@/Component/sections/total";
-import { getFiles } from "@/lib/actions/file.actions";
-import { getFileTypesParams } from "@/lib/utils";
-import type { Models } from "node-appwrite";
+"use client";
 
-export async function generateStaticParams() {
-  const types = ["documents", "images", "media", "others"];
-  return types.map((type) => ({ type }));
+import { useEffect } from "react";
+import { initializeCapacitorPlugins } from "@/app/Capacitor-PLugins";
+
+export default function ClientInitializer() {
+  useEffect(() => {
+    initializeCapacitorPlugins();
+  }, []);
+
+  return null; // no UI, just initialize plugins
 }
-
-interface SearchParamProps {
-  params: {
-    type?: string | string[];
-  };
-  searchParams: {
-    query?: string | string[];
-    sort?: string | string[];
-  };
-}
-
-import ClientInitializer from "./ClientInitializer";
-
-const Page = async ({ searchParams, params }: SearchParamProps) => {
-  const rawType = params?.type;
-  const type = Array.isArray(rawType) ? rawType[0] : rawType || "";
-
-  const rawQuery = searchParams?.query;
-  const searchText = Array.isArray(rawQuery) ? rawQuery[0] : rawQuery || "";
-
-  const rawSort = searchParams?.sort;
-  const sort = Array.isArray(rawSort) ? rawSort[0] : rawSort || "";
-
-  const types = getFileTypesParams(type) as FileType[];
-  const files = await getFiles({ types, searchText, sort });
-
-  return (
-    <div className="page-container">
-      <ClientInitializer params={{
-              type: undefined
-          }} searchParams={{
-              query: undefined,
-              sort: undefined
-          }} />
-      <section className="w-full mb-6">
-        <h1 className="h1 capitalize">{type}</h1>
-        <div className="total-size-section">
-          <Total files={files.documents} />
-          <div className="sort-container">
-            <p className="body-1 hidden sm:block text-light-200">Sort by:</p>
-            <Sort />
-          </div>
-        </div>
-      </section>
-
-      {files?.documents?.length > 0 ? (
-        <section className="flex flex-wrap justify-center gap-4 items-start w-full min-h-[180px] overflow-y-auto custom-scrollbar">
-          {files.documents.map((file: Models.Document) => (
-            <Cardb key={file.$id} file={file} />
-          ))}
-        </section>
-      ) : (
-        <div className="empty-list">
-          <p>No files Uploaded</p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Page;

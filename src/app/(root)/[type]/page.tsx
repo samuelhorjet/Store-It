@@ -37,12 +37,7 @@ const Page = async ({ searchParams, params }: SearchParamProps) => {
 
   return (
     <div className="page-container">
-      <ClientInitializer params={{
-        type: undefined
-      }} searchParams={{
-        query: undefined,
-        sort: undefined
-      }} />
+      <ClientInitializer />
       <section className="w-full mb-6">
         <h1 className="h1 capitalize">{type}</h1>
         <div className="total-size-section">
